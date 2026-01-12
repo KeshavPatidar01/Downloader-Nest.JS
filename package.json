@@ -25,6 +25,13 @@
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
+
+  "functions": {
+    "app/api/**/*": {
+      "includeFiles": "yt-dlp"
+    }
+  
+},
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "babel-plugin-react-compiler": "1.0.0",

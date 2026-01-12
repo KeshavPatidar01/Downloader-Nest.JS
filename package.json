@@ -3,19 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
- "dev": "next dev",
-  "build": "next build",
-  "start": "next start",
-  "lint": "next lint",
-  
-
-
-
-
-
-
-
-  "postinstall": "curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -o yt-dlp && chmod +x yt-dlp"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "postinstall": "curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -o yt-dlp && chmod +x yt-dlp"
   },
   "dependencies": {
     "@distube/ytdl-core": "^4.16.12",
@@ -25,13 +17,6 @@
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
-
-  "functions": {
-    "app/api/**/*": {
-      "includeFiles": "yt-dlp"
-    }
-  
-},
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "babel-plugin-react-compiler": "1.0.0",
@@ -39,5 +24,4 @@
     "eslint-config-next": "16.1.1",
     "tailwindcss": "^4"
   }
-
 }

@@ -7,7 +7,15 @@
   "build": "next build",
   "start": "next start",
   "lint": "next lint",
-  "postinstall": "curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -o ./yt-dlp && chmod a+rx ./yt-dlp"
+  
+
+
+
+
+
+
+
+  "postinstall": "curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -o yt-dlp && chmod +x yt-dlp"
   },
   "dependencies": {
     "@distube/ytdl-core": "^4.16.12",

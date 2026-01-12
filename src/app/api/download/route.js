@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { spawn } from 'child_process';
-import path from 'path'; // ✅ IMPORT ZAROORI HAI
+import path from 'path';
+import fs from 'fs'; // ✅ Permissions ke liye fs chahiye
 
 export async function POST(req) {
   try {
@@ -11,54 +12,63 @@ export async function POST(req) {
       return NextResponse.json({ error: "URL missing" }, { status: 400 });
     }
 
-    console.log(`🎬 Vercel Downloading: ${url}`);
+    console.log(`🎬 Vercel Request for: ${url}`);
 
-    // ✅ IMPORTANT: Vercel par 'yt-dlp' global nahi hota.
-    // Humne jo 'postinstall' mein download kiya, wo root folder mein hota hai.
-    // Isliye hum uska full path banayenge:
+    // 1. Path Setup
     const command = path.join(process.cwd(), 'yt-dlp');
 
-    // ✅ Streaming ke liye Sahi Settings
+    // 2. ✅ CRITICAL FIX: Check if binary exists & Give Permissions
+    if (fs.existsSync(command)) {
+        try {
+            fs.chmodSync(command, '755'); // Executable permission set karein
+        } catch (e) {
+            console.error("Permission Error:", e);
+        }
+    } else {
+        return NextResponse.json({ error: "yt-dlp binary not found on server" }, { status: 500 });
+    }
+
+    // 3. ✅ Format Fix for Vercel (No FFmpeg)
+    // 'best' often requires merging audio/video which needs FFmpeg.
+    // Use 'best[height<=720]' to get pre-merged MP4 files (Safe for Vercel).
     const args = [
       url,
-      '-o', '-',                   // Stdout par output
-      '-f', 'best[ext=mp4]/best',  // Best MP4 format (Audio+Video Combined)
-      '--no-warnings',             // Clean Output
-      '--no-check-certificates'    // Errors kam karne ke liye
+      '-o', '-',                 // Stdout output
+      '-f', 'best[height<=720][ext=mp4]', // ✅ Safer format (720p pre-merged)
+      '--no-warnings',
+      '--no-check-certificates',
+      '--prefer-free-formats',
+      '--dns-servers', '8.8.8.8' // Kabhi kabhi Vercel IP block hoti hai
     ];
 
     const stream = new ReadableStream({
       start(controller) {
-        // Process Spawn karo (Correct Path ke sath)
+        console.log("Spawn command:", command, args);
+        
         const process = spawn(command, args);
 
-        // 1. DATA HANDLING
         process.stdout.on('data', (chunk) => {
-          try {
-             controller.enqueue(chunk);
-          } catch (error) {
-             // Controller closed
-          }
+          controller.enqueue(chunk);
         });
 
-        // 2. END OF STREAM
         process.stdout.on('end', () => {
-            try {
-                controller.close();
-            } catch (error) {}
+             try { controller.close(); } catch (e) {}
         });
 
-        // 3. LOGS (Debugging ke liye)
         process.stderr.on('data', (data) => {
           const msg = data.toString();
-          if (!msg.includes('[download]')) { 
-             console.log('yt-dlp log:', msg);
-          }
+          // Error logs ko ignore na karein, unhe print karein
+          console.log('yt-dlp stderr:', msg);
         });
 
-        // 4. PROCESS CLOSE
         process.on('close', (code) => {
            console.log("Process finished with code:", code);
+           if (code !== 0) {
+               // Agar code 0 nahi hai, matlab error aaya tha
+               // Lekin stream start ho chuki hoti hai, isliye hum yahan 
+               // sirf log hi kar sakte hain.
+               console.error("Download failed inside stream");
+           }
         });
 
         process.on('error', (err) => {
@@ -68,13 +78,11 @@ export async function POST(req) {
       }
     });
 
-    const filename = `video_${Date.now()}.mp4`;
-
     return new NextResponse(stream, {
       status: 200,
       headers: {
         'Content-Type': 'video/mp4',
-        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Disposition': `attachment; filename="video_${Date.now()}.mp4"`,
       },
     });
 
@@ -83,3 +91,8 @@ export async function POST(req) {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
+
+
+
+
+
